@@ -6,7 +6,7 @@ import { accountId, operationId, type Operation, type State } from "./state";
 // row are both accepted, so the limit is per operation (v1 accepted at least 100000).
 const TRANSFER_LIMIT = 50_000;
 // Observed E303 on v2: "100.50", "-5", "1e3", "0", "007", " 5", and also 1000000000000 and 99999999999999999999.
-// 9000000 is accepted. The exact upper bound is not known yet (A-amount-upper-bound).
+// 9999999999 (10 digits) is accepted. The exact upper bound is not known yet (A-amount-upper-bound).
 const AMOUNT = /^[1-9]\d*$/;
 const AMOUNT_ASSUMED_MAX = 999_999_999_999;
 
@@ -43,7 +43,7 @@ function parseAmount(raw: string | undefined, ctx: Context<State>): number | und
   if (raw === undefined || !AMOUNT.test(raw)) return undefined;
   const value = Number(raw);
   if (value > AMOUNT_ASSUMED_MAX) return undefined;
-  if (value > 9_000_000) ctx.assumption("A-amount-upper-bound", { raw, note: "between 9000000 (accepted) and 1000000000000 (rejected)" });
+  if (value > 9_999_999_999) ctx.assumption("A-amount-upper-bound", { raw, note: "between 9999999999 (accepted) and 1000000000000 (rejected)" });
   return value;
 }
 
