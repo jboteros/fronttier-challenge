@@ -4,6 +4,9 @@ Opened 15:30 COT. The black box started answering as version 2; the ticket said 
 
 ## How it was detected
 
+The ticket opened at 15:30; the change was detected at about 17:15, when the replay below was run by hand. No unattended canary existed, so roughly 1h45m passed before it was seen.
+
+
 The recorded version 1 sequences (`tests/corpus/v1/`, built from the experiment log) were replayed against the original through the gateway (`scripts/smoke.sh --original`, 92 requests). 34 of them differed. Every difference was classified; many were cascades of a single change (a rejected transfer shifts the following operation ids).
 
 ## What changed

@@ -1,0 +1,15 @@
+# Decisions
+
+`time · decision · alternatives considered · why · what would make us revisit`. Times are approximate where the logs do not carry one.
+
+- ~12:30 · Core/profile split: a protocol-agnostic server plus one replaceable service profile · a single module with the rules inline · the task statement warned of a change during the day, and a split keeps the change to one directory · revisit if a change ever needs the core to inspect messages. It held: v2 touched only `src/profile/blackbox/`.
+- ~12:40 · Railway, one replica, built from the Dockerfile · Fly.io, serverless · the evaluator talks to a single process and state lives in memory; Fly's defaults are two machines and scale-to-zero · revisit if state must survive restarts.
+- ~12:40 · Zero runtime dependencies (Node `http` only) · Express or Fastify · fewer moving parts to explain and to fail · revisit if body handling or routing grows.
+- ~12:45 · One logged gateway (`scripts/bb.sh`) for every request to the original, refusing to send without a hypothesis · loose `curl` · the experiment log is graded and the quota is 8,000 requests a day · revisit never; it also produced the evidence for the spec.
+- before 17:15 · Derive the check function from single-character probes, then fit a formula · brute-force more hash families offline · the offline attempts on 14 samples matched nothing; one-character variations exposed the −3 weight and the modulus 97 · revisit if a message ever has a valid check that the formula rejects (326 accepted and 153 rejected requests in the log: none so far).
+- before 17:15 · Transfer limit as a per-operation constant · a cumulative counter · bisection on the original (50000 accepted, 50001 rejected; two of 50000 in a row accepted) · revisit if a test shows a cumulative effect on a long sequence.
+- ~17:30 · Amount cap at 10 digits · a value cap between 10^10 and 10^11 · 9,999,999,999 accepted, 99,999,999,999 rejected, nothing between probed · revisit if the hidden-set run shows an `A-amount-upper-bound` hit that the original accepts.
+- 18:04 · Keep `GET /health` authenticated, like the original, and fix the Railway `TEAM_TOKEN` instead · answering 200 without a token to satisfy the validator · the actual cause was the personal token set as `TEAM_TOKEN`; relaxing `/health` would have deviated from the original for no benefit · revisit if the validator ever calls `/health` without a token.
+- ~18:15 · Generate the spec and the submission log from the experiment log with a script that refuses unknown ids · write the spec by hand · a false claim subtracts points and the log has 580 lines · revisit if the format of the organizers' log changes.
+- ~18:15 · Submit the log with only the organizers' fields, keep the richer one in `lab/` · submit the rich one · unknown extra keys could be rejected by the validator · revisit if the platform shows it dropped information a judge needs.
+- Not done, and why: no scheduled canary and no validation replay loop (planned in the design). The v2 change was found by replaying the recording by hand at about 17:15, 1h45m after the ticket; with more time the canary is the first thing to build.

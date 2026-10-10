@@ -2,20 +2,24 @@
 
 Replacement for a legacy HTTP service with no source and no documentation (Frontier BOG/26, Challenge 2, "La caja negra"). The replacement must answer the same status and body as the original, errors included.
 
-**Status:** exploration tooling is built; the replacement is not started. Sections marked `TODO` are filled in as pieces land.
+**Status:** the replacement is built and deployed on Railway (single always-on replica); it reproduces all 297 recorded v2 requests and the hidden-set run 1 of 3 was used. The service changed at 15:30 (version 2); see `docs/INCIDENT.md`.
 
 ## Documents
 
 | Document | What it is |
 |---|---|
 | [`docs/design.md`](docs/design.md) | Systems design: constraints, architecture diagram, observability, decisions, failure modes, measurement and execution plan, current state |
-| `docs/spec/` | Service specification (TODO) |
+| [`docs/spec.md`](docs/spec.md) | Service specification: 72 behaviors with evidence ids and confidence (generated from the log) |
+| [`docs/INCIDENT.md`](docs/INCIDENT.md) | The 15:30 change to version 2: what changed, how it was found, what was left unproven |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md) | Trade-off log |
+| [`docs/execution-plan.md`](docs/execution-plan.md) | Execution plan, with the outcome versus plan at the top |
+| [`submission/experimentos.jsonl`](submission/experimentos.jsonl) | The experiment log in the organizers' exact format (the file uploaded) |
 | [`lab/experimentos.jsonl`](lab/experimentos.jsonl) | Experiment log: one line per request sent to the original, with the hypothesis behind it |
 | [`CLAUDE.md`](CLAUDE.md) | Engineering rules for the AI agent working in this repo |
 
 ## Requirements
 
-`bash`, `curl`, `jq`. Node and TypeScript for the replacement (TODO: version).
+`bash`, `curl`, `jq`, `python3` (only for the check value in `seq.sh` and for `build-spec.py`). Node 20 or later for the replacement; TypeScript and `@types/node` are dev dependencies.
 
 ## Configuration
 
@@ -59,7 +63,9 @@ REPLACEMENT_URL=... TEAM_TOKEN=... scripts/smoke.sh
 BLACKBOX_URL=... FRONTIER_BLACKBOX=... scripts/smoke.sh --original
 ```
 
-Corpus lines are `{"seq","n","request","status","response"}` with optional `"method"` and `"path"` (default `POST /msg`). Expected values always come from the original's real responses, never from assumptions.
+The default corpus is `tests/corpus/*.jsonl` (the v2 recording, cut from the experiment log). The version 1 recordings sit in `tests/corpus/v1/` and are expected to fail against the current service. Corpus lines are `{"seq","n","request","status","response"}` with optional `"method"` and `"path"` (default `POST /msg`). Expected values always come from the original's real responses, never from assumptions.
+
+Helpers: `scripts/seq.sh` runs one sequence against the original with the check values computed; `scripts/find-check.sh` and `scripts/probe-limit.sh` were used to derive the check function and the transfer limit; `scripts/log-to-corpus.sh` cuts a corpus from the log (`scripts/log-to-corpus.sh lab/experimentos.jsonl 232 > tests/corpus/v2-recorded.jsonl`); `python3 -I scripts/build-spec.py` rebuilds `docs/spec.md` and `submission/experimentos.jsonl` and fails if a cited id does not exist.
 
 ## Run the replacement
 
@@ -74,16 +80,20 @@ Zero runtime dependencies (Node `http` only); `typescript` and `@types/node` are
 
 ## Deploy and roll back
 
-TODO: single always-on replica (state lives in memory), one command each for deploy and rollback, and the public URL.
+The service runs on Railway as a single replica built from the `Dockerfile` (state lives in memory, so one instance only). Required variable: `TEAM_TOKEN`, the **team** token from the platform card (not the personal black-box token); `PORT` is injected by Railway.
+
+- Deploy: push to `main`; Railway builds the `Dockerfile` and redeploys.
+- Roll back: redeploy a previous deployment from the Railway dashboard (or `git revert` and push).
+- Check: `curl -H "Authorization: Bearer $TEAM_TOKEN" https://fronttier-challenge-production.up.railway.app/health` answers `{"ok":true}`; then `scripts/smoke.sh` with `REPLACEMENT_URL` set.
 
 ## Layout
 
 ```
-docs/design.md           systems design with the embedded architecture diagram
-docs/spec/               service specification (TODO)
-lab/experimentos.jsonl   experiment log written by bb.sh
-scripts/bb.sh            logged gateway to the original
-scripts/smoke.sh         replay and compare recorded sequences
-tests/corpus/            recorded sequences (the oracle)
-src/                     replacement (TODO)
+src/core/                 protocol-agnostic server: HTTP, body limits, state container, reset, logging
+src/profile/blackbox/     everything specific to this service: auth, catalog, commands, check function
+docs/                     design, spec, incident, decisions, execution plan
+lab/experimentos.jsonl    experiment log written by bb.sh (rich: method, path, auth)
+submission/               the log in the organizers' format
+scripts/                  bb.sh, smoke.sh, seq.sh, find-check.sh, probe-limit.sh, log-to-corpus.sh, build-spec.py
+tests/corpus/             recorded sequences (v2 current, v1 in v1/)
 ```

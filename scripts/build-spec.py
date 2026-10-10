@@ -108,6 +108,7 @@ add(S2, "IG-06", "Valid control = `(1 - 100 * N) mod 97`, where N is the number 
 add(S2, "IG-07", "Letter case and accents/spaces do not change the control: `ALTA;zoe`, `ALTA;José` and `ALTA;Ana Maria` use the formula with `é` and the space skipped.", lambda r: team(r) and cmd(r) == "ALTA" and r["status"] == 201 and len(parts(r)) > 1 and re.search(r"^[a-z]|é| ", parts(r)[1]), n=4)
 add(S2, "IG-08", "The command name is case-insensitive (`CONSULTa;AC-0001` is `CONSULTA`).", lambda r: team(r) and re.match(r"^[A-Za-z]+$", cmd(r) and parts(r)[0]) and parts(r)[0] != parts(r)[0].upper() and r["status"] == 200, n=2)
 add(S2, "IG-09", "`PING;<anything>` answers `{\"pong\":true}` without validating the control; `PING` needs exactly two fields (`PING;a;b` answers E302).", lambda r: team(r) and cmd(r) == "PING" and r["status"] in (200, 400) and (err(r) in (None, "E302")), n=4)
+add(S2, "IG-11", "A control with leading zeros (`062`) is assumed to be accepted as 62, and characters other than letters, digits, space and `é` inside a name (other accents, symbols) are assumed to be skipped like separators when the control is computed. Neither was probed.", forced="assumed")
 add(S2, "IG-10", "Evaluation order of a message: E100, E102, E103, E104, then (PING: arity, pong) then E201, E202, E301, E302, then the command's own rules.", lambda r: r["hipotesis"].startswith("v2 request-level order") or r["hipotesis"].startswith("v2 body shape"), n=6)
 
 # 3. Commands

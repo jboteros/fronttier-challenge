@@ -1,5 +1,8 @@
 # Execution plan
 
+> **Outcome versus plan.** The core/profile split worked as intended: the v2 change touched only `src/profile/blackbox/`. The schedule did not hold: the replacement was deployed and validated at 18:08, not 13:30, and v2 was detected at 17:15 (plan: 15:30) because no unattended canary was built. `scripts/probe.sh` was never written; its job was done by `seq.sh`, `find-check.sh` and `probe-limit.sh`. The list of validation runs below was not followed; run 1 of 3 was used at 18:08.
+
+
 Written 12:24 COT. Execution closes 20:00. A change to the challenge is expected around 15:00, so the implementation is split into a service-agnostic core and a replaceable service profile.
 
 ## 1. Deliverables and how each is secured

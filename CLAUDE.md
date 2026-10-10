@@ -21,12 +21,12 @@ Frontier hackathon, Bogotá, Sat 10 Oct 2026. One day, one submission. This file
 ## Rules
 - Do not add a dependency, an external service or any new moving part without asking first.
 - Small commits whose messages say why. `main` is always deployable. After each passing validation, tag the commit `good-HHMM`.
-- Never commit secrets. `OPENROUTER_API_KEY` lives in `.env` (gitignored) and in the deploy environment only.
-- If the solution calls a model: OpenRouter only, through a single wrapper module. Model id comes from config; the wrapper owns the timeout, retry with backoff, a fallback model, and a log of latency, tokens and cost per call.
+- Never commit secrets. `TEAM_TOKEN` (and the personal black-box token) live in `.env` (gitignored) and in the deploy environment only. The replacement uses the **team** token.
+- The replacement calls no model and no external service; it is a deterministic state machine with zero runtime dependencies.
 - Log every request to the entrypoint with a request id, input, output, latency and errors, plus an audit line per state mutation and an `assumption_hit` whenever a default from the spec is used. JSON lines on stdout only; never log tokens.
 - Do not add routes to the replacement for stats, debug or admin: every path other than `/health` and `/__reset` must answer like the original.
 - No test suite for coverage. One smoke script (`scripts/smoke.sh`) hits the entrypoint with the brief's examples plus hostile inputs. Run it before every deploy and every validation.
-- No auretth, admin screens or UI polish unless the brief scores them.
+- No auth beyond the contract, admin screens or UI polish unless the brief scores them.
 - If you are guessing at an API or a behavior, say so and verify by running it. Do not invent.
 - Build order: contract → happy path end to end → deploy → first validation → edge cases → quality. Never go more than about 45 minutes without a deployable `main`.
 - Final validation and video come from a tagged known-good commit.
@@ -36,20 +36,26 @@ Append to `docs/DECISIONS.md` whenever choosing between real alternatives:
 `HH:MM · decision · alternatives considered · why · what would make us revisit`
 Keep it honest, including the things that went wrong.
 
-## Stack and commands — CONFIRM AT 10:30
-- Default: TypeScript on Node, unless the brief dictates otherwise
-- Deploy target: TODO (needs a stable public URL by 13:30)
-- Model: TODO (via OpenRouter)
-- Commands (`dev`, `smoke`, `deploy`, `rollback`) and env vars live in `README.md`; keep them there, not here.
+## Stack and commands
+- TypeScript on Node 20, zero runtime dependencies; Railway, one replica, built from the `Dockerfile`.
+- Commands (`dev`, `smoke`, deploy, roll back) and env vars live in `README.md`; keep them there, not here.
 
 ## Repo map
 ```
-docs/design.md         one-page design doc with the embedded Mermaid architecture diagram: problem and constraints, architecture, data flow, key trade-offs, failure modes, what we cut
+src/core/              protocol-agnostic server
+src/profile/blackbox/  service-specific rules (auth, catalog, commands, check function)
+docs/design.md         systems design with the embedded Mermaid architecture diagram
+docs/spec.md           service specification, generated from the log by scripts/build-spec.py
+docs/INCIDENT.md       the 15:30 change to version 2
 docs/DECISIONS.md      trade-off log
-docs/INCIDENT.md       incident response: what happened, what changed, why, what we would do with more time
-scripts/smoke.sh       pre-deploy and pre-validation check: replays tests/corpus against the replacement (or the original with --original)
-tests/corpus/*.jsonl   recorded sequences with the original's real responses (the oracle)
-scripts/bb.sh          the only way to talk to the original: logs every request with its hypothesis
-lab/experimentos.jsonl experiment log (graded deliverable), written by bb.sh
-src/                   application code
+docs/execution-plan.md execution plan, with outcome versus plan
+lab/experimentos.jsonl experiment log written by scripts/bb.sh (graded deliverable, rich format)
+submission/            experiment log in the organizers' exact format
+scripts/               bb.sh (the only way to talk to the original), smoke.sh, seq.sh, find-check.sh, probe-limit.sh, log-to-corpus.sh, build-spec.py
+tests/corpus/          recorded sequences with the original's real responses (v2 current, v1 in v1/)
 ```
+
+## Language
+- Everything in this repo is written in English: code, comments, commits, docs, design doc, spec, experiment log hypotheses and conclusions.
+- Exception: literal strings of the black box (error messages such as `control inválido`, `límite excedido`) are data and stay verbatim.
+- Spoken material (video, pitch) is in whichever language the owner chooses at the time.

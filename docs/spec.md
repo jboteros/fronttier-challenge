@@ -33,6 +33,7 @@ Money is in cents; every request is `POST /msg {"m":"..."}` unless stated; all r
 | IG-07 | Letter case and accents/spaces do not change the control: `ALTA;zoe`, `ALTA;José` and `ALTA;Ana Maria` use the formula with `é` and the space skipped. | 324, 325, 326 | confirmed |
 | IG-08 | The command name is case-insensitive (`CONSULTa;AC-0001` is `CONSULTA`). | 310 | probable |
 | IG-09 | `PING;<anything>` answers `{"pong":true}` without validating the control; `PING` needs exactly two fields (`PING;a;b` answers E302). | 255, 301, 566 | confirmed |
+| IG-11 | A control with leading zeros (`062`) is assumed to be accepted as 62, and characters other than letters, digits, space and `é` inside a name (other accents, symbols) are assumed to be skipped like separators when the control is computed. Neither was probed. | - | assumed |
 | IG-10 | Evaluation order of a message: E100, E102, E103, E104, then (PING: arity, pong) then E201, E202, E301, E302, then the command's own rules. | 562, 563, 564, 565, 566, 567 | confirmed |
 
 ## 3. Commands (Comandos)

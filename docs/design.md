@@ -13,7 +13,7 @@ A legacy HTTP service with no source code and no documentation receives `POST /m
 | The service may change during the day | Continuous change detection and rules as data |
 | A false claim in the spec subtracts points | All traffic to the original is logged with its hypothesis |
 
-**What we know today** (20 examples from the morning version): protocol `COMMAND;args;check`, commands `PING ALTA CONSULTA DEPOSITO TRANSFER ANULA`, error families `E2xx` integrity, `E3xx` command, `E4xx` resource and `E5xx` business, counters `AC-0001` and `OP-0001`, and response quirks (`recieved`, `cuentaId` versus `cuenta_id`) that must be reproduced verbatim. **What we do not know**: the check field function, the order in which errors are evaluated, and the behavior without a token.
+**Where this ended up** (see sections 8 and 9): the protocol is `COMMAND;args;check` over `POST /msg`; the check is a mod-97 value derived from the message; the evaluation order of every error was probed pair by pair; the service changed at 15:30 (balances as strings, transfer limit lowered). The at-design-time unknowns (check function, error order, behavior without a token) are all resolved; the open points are listed in section 8.
 
 ## 2. Architecture
 Two parts that share no runtime code:
@@ -62,8 +62,8 @@ flowchart LR
 1. The gateway sends a sequence to the original (after `__reset`), writes each request to `experimentos.jsonl` and updates the corpus.
 2. The comparator replays the corpus against the local replacement; any difference is a defect or a new hypothesis.
 3. Each confirmed behavior enters the spec with its evidence and confidence.
-4. The canary compares against the baseline corpus: a difference is a service change and is recorded under "Changes during the day".
-5. Each `/evento` validation leaves a request log; its assumption hits feed the validation replay loop (section 4).
+4. Change detection: replaying the recorded corpus against the original (`smoke.sh --original`) shows a service change as a difference, recorded under "Changes during the day". This was run by hand, not on a schedule (no unattended canary was built).
+5. Each `/evento` validation leaves a request log. The validation replay loop of section 4 was designed but not executed.
 
 ## 4. Observability, audit and usage
 The replacement may not add routes (every other path must answer like the original), so all signals leave as **JSON lines on stdout**, which the platform keeps and the lab pulls. Tokens are never logged.
@@ -75,6 +75,8 @@ The replacement may not add routes (every other path must answer like the origin
 | Audit log | Append-only state mutations (reset, account created, deposit, transfer, cancellation) with balances before and after | Rebuild any sequence's state, check transitions against the spec, explain behavior in the debrief |
 | Usage analytics | Computed offline from the request log: command and error-code frequency, latency p50/p95/max, test shapes (segments between resets), assumption hit rate | Know what the hidden set exercises and where assumptions are used |
 
+**Implemented**: the request, error, audit and `assumption_hit` lines (`src/core/server.ts`, `src/profile/blackbox/`). The audit lines carry the operation, the accounts and the amount, not the balances before and after. **Not built**: the usage analytics and the validation replay loop.
+
 On the lab side, `experimentos.jsonl` plus the daily budget counter are the audit of everything asked of the original.
 
 **Validation replay loop**: after each `/evento` run, extract the sequences that hit an assumption, replay them against the original through the gateway (budgeted) and diff. Each mismatch is a failing class of hidden tests to fix as a class, never as a hardcoded case. It only works before 20:00, when participant tokens stop working on the original.
@@ -84,16 +86,16 @@ On the lab side, `experimentos.jsonl` plus the daily budget counter are the audi
 |---|---|---|
 | Deterministic state machine in TypeScript, no LLM | LLM imitating responses | Comparison is exact character by character; an LLM adds latency and nondeterminism |
 | One instance, in-memory state | Database, multiple replicas | The test set talks to one process and reset is cheap; every extra piece is a failure point |
-| Rules and errors as ordered data | Conditionals in code | Evaluation order and message texts are the most likely things to change |
+| Commands as a table of `{arity, run}` and errors as a catalog; request-level order as one function | A framework or a rules DSL | Message texts and per-command rules change in one place; the evaluation order lives in `handleMessage` and was the part that needed fixing most often |
 | Single gateway with automatic log | Loose `curl` and scripts | The log is graded and the budget is limited |
 | Derive the check function with one-character probes | Guess from the samples we already have | Common functions were tried against the available samples and none matches |
-| Always-on single-replica hosting (Railway or Fly.io) | Serverless | State must live in one process |
+| Railway, one always-on replica, built from the Dockerfile | Fly.io (defaults to two machines and scale-to-zero), serverless | State must live in one process |
 | Signals as JSON lines on stdout, analyzed offline | A `/__stats` endpoint, an external monitoring service | Extra routes would break "every other path answers like the original"; each service is one more moving part |
 
 ## 6. Failure modes
 | Failure | Mitigation |
 |---|---|
-| We do not derive the check function in time | Cap of 1,500 requests; fallback: table of known checks plus accept any numeric check (recorded as **assumption**) |
+| We do not derive the check function in time | Cap of 1,500 requests (about 150 were used); fallback was a table of known checks plus accepting any numeric check, never needed |
 | We exhaust the budget | Counter in the gateway, fixed reserve for the incident |
 | The service changes at 15:30 | Canary every 30 min, rules as data, one-command deploy and rollback |
 | Near-identical bodies (accents, trailing spaces) | Strict comparator, catalog copied from real responses |
@@ -114,23 +116,25 @@ The oracle is the experiment log: each line is a test case with its real respons
 Concrete cases from day one: the 20 examples in order (20/20); invalid and malformed check; unknown command; wrong arity; transfer limit at the boundary; `ANULA` twice; nonexistent account; insufficient balance; request without token.
 
 ## 8. Current state and acknowledged gaps
-Honest status at 10:43 COT. "Verified" means exercised against a local fake of the service, not against the real one.
+Final state of the implementation. "Verified" means replayed against the real service through the gateway unless stated otherwise.
 
-| Component | Status | Verification | Known gap |
-|---|---|---|---|
-| Gateway `scripts/bb.sh` | Built | Log line, budget counter and rate-limit handling checked against a local fake | Not run against the real service yet; unauthenticated requests may or may not count against the quota |
-| Replay and comparator `scripts/smoke.sh` | Built | 20/20 on the morning examples against a fake; a single wrong body is reported with want and got | Number formatting (`1` versus `1.0`) is not guaranteed to be compared as strictly as the judge does |
-| Corpus `tests/corpus` | 1 sequence, the 20 morning examples | Taken verbatim from the organizers' file | Covers none of the error orderings, auth, or long sequences yet |
-| Canary, spec validator | Designed, not built | None | Needed before 15:30 |
-| Replacement | Not started (design phase) | None | Hosting target undecided |
-| Signals (request, error, audit) | Designed, not built | None | None of the analytics exist until the replacement does |
+| Component | Status | Verification |
+|---|---|---|
+| Gateway `scripts/bb.sh` | Built, used for every request to the original (580 logged) | Real service; daily budget guard and rate-limit handling |
+| Replay and comparator `scripts/smoke.sh` | Built | 297/297 against the v2 recording, local and deployed; `--original` found the v2 changes |
+| Corpus `tests/corpus` | v2 recording (297 requests, 46 sequences) and the v1 recordings kept apart in `v1/` | Cut from the experiment log, never typed by hand |
+| Replacement `src/` | Built and deployed on Railway | Matches every observed behavior; hidden set run 1 of 3 used |
+| Specification `docs/spec.md` | Generated from the log by `scripts/build-spec.py` | Every cited id exists; every confirmed behavior has two or more lines |
+| Signals (request, error, audit, assumption) | Built | JSON lines on stdout; no token is ever logged |
+| Canary, usage analytics, validation replay loop | Not built | Change detection was done by hand |
 
 **Acknowledged gaps**
-- The check-field function is unknown. Common functions (sums, weighted sums, xor, crc, polynomial hashes) were tried against the 14 usable samples and none matched. Without it the replacement cannot accept any valid message, so it is the first exploration target and the highest risk.
-- Two behaviors are ambiguous in the examples: whether the transfer limit is per operation or cumulative, and whether a cancellation refunds the origin account.
-- We have not yet confirmed that the service still matches the morning version; the first replay of the corpus against the original answers that.
-- The experiment log carries three extra fields (`method`, `path`, `auth`) beyond the organizers' format, needed to interpret non-`/msg` requests; they can be stripped at submission.
-- This document exceeds one printed page and must be trimmed for the submission.
+- The third v2 change is not identified. Amount validation (`E303`) and the same-account rule (`E304`) are the candidates, but version 1 never exercised them, so they cannot be shown to be new.
+- The amount cap is assumed to be 10 digits: 9,999,999,999 is accepted and 99,999,999,999 is rejected; values between were not bisected.
+- Never probed: an unauthenticated unknown route, `POST /health`, oversized bodies, a control with leading zeros (`062`), and characters other than letters, digits, space and `é` inside names.
+- The replacement keeps one global state; the original keeps state per token. Equivalent for the evaluator, which uses one token.
+- The experiment log submitted (`submission/experimentos.jsonl`) drops the `method`, `path` and `auth` fields kept in `lab/`, so non-`/msg` requests are identified only by their hypothesis text.
+- The v2 change was detected at about 17:15, not at 15:30 when the ticket opened: the plan assumed an unattended canary that was never built.
 
 ## 9. Execution plan
 **Exploration budget** (8,000 req/day):
@@ -146,18 +150,17 @@ Honest status at 10:43 COT. "Verified" means exercised against a local fake of t
 | Validation replay (sequences that hit an assumption) | 500 |
 | Reserve for the 15:30 change | 1,000 |
 
-**Schedule** (COT):
+**Planned versus actual** (COT):
 
-| Time | Milestone |
-|---|---|
-| 12:00–13:00 | Gateway, baseline corpus, HTTP surface, first check-function probes |
-| 13:30 | Minimal replacement deployed and validated on `/evento` |
-| 13:30–15:30 | Check function, commands, errors and state; spec in parallel |
-| 15:30 | Service change: canary, diff, minimal change, document it |
-| 15:30–19:00 | Edge cases and spec; no redesign |
-| 19:00 | Freeze: fixes only |
-| 19:30 | Video recorded |
-| 20:00 | Final validation from a tagged commit |
+| Planned | Planned time | Actual (only what the logs and platform timestamps show) |
+|---|---|---|
+| Gateway, baseline corpus, first check probes | 12:00-13:00 | Gateway and replay scripts written 10:17-10:19; check function derived before 17:15 (exact time not recorded) |
+| Minimal replacement deployed and validated | 13:30 | Platform validation passed 18:08 (run 1 of 3), after fixing the team token; the running build was deployed 17:57 |
+| Service change absorbed | 15:30-16:30 | Ticket opened 15:30; replay of the v1 recording run at about 17:15; absorbed before the 18:08 validation |
+| Freeze | 19:00 | Not formally applied |
+| Final validation from a tagged commit | 20:00 | Pending |
+
+Budget actually used: 580 of 8,000 requests. The reserve was never needed because the check function was derived from about 150 requests.
 
 ## 10. What we cut
 No UI, no database, no LLM in the replacement, no multiple instances, no spec polish before behaviors are confirmed. If we fall behind, cut in this order: unlikely edge cases, spec polish, higher canary frequency. Never the entrypoint contract, the log, or the truthfulness of the spec.
