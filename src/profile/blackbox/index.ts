@@ -37,7 +37,7 @@ function handleMessage(req: HttpRequest, ctx: Context<State>): HttpResponse {
   if (!CHECK.test(check)) return fail(CATALOG.malformedCheck, { rule: "check-format" });
 
   const args = fields.slice(1, -1);
-  if (verifyCheck([command, ...args].join(";"), Number(check), ctx) === "invalid") {
+  if (verifyCheck([command, ...args].join(";"), check, ctx) === "invalid") {
     return fail(CATALOG.invalidCheck, { rule: "check-value" });
   }
   return spec.run(args, ctx);
