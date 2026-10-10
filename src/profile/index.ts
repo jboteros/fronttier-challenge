@@ -4,7 +4,7 @@ import { createBlackboxProfile } from "./blackbox";
 export function loadProfile(name: string, env: NodeJS.ProcessEnv): Profile<any> {
   switch (name) {
     case "blackbox": {
-      const teamToken = env["TEAM_TOKEN"];
+      const teamToken = env["TEAM_TOKEN"]?.trim();
       if (!teamToken) throw new Error("TEAM_TOKEN is required for the blackbox profile");
       return createBlackboxProfile({ teamToken });
     }

@@ -51,6 +51,21 @@ function handleMessage(req: HttpRequest, ctx: Context<State>): HttpResponse {
   return spec.run(args, ctx);
 }
 
+// Never logs the token: only the shape of what was sent, so a mismatch can be diagnosed from the logs.
+function describeAuth(header: string | undefined, expected: string): Record<string, unknown> {
+  if (header === undefined) return { auth_header: "missing" };
+  const match = /^Bearer (.*)$/.exec(header);
+  if (!match) return { auth_header: "not-bearer" };
+  const sent = match[1] as string;
+  return {
+    auth_header: "bearer",
+    sent_length: sent.length,
+    expected_length: expected.length,
+    same_prefix: sent.slice(0, 4) === expected.slice(0, 4),
+    same_suffix: sent.slice(-4) === expected.slice(-4),
+  };
+}
+
 export function createBlackboxProfile(config: { teamToken: string }): Profile<State> {
   return {
     name: "blackbox",
@@ -59,9 +74,10 @@ export function createBlackboxProfile(config: { teamToken: string }): Profile<St
       const route = `${req.method} ${req.path}`;
       const known = route === "GET /health" || route === "POST /__reset" || route === "POST /msg";
 
-      if (req.headers["authorization"] !== `Bearer ${config.teamToken}`) {
+      const header = req.headers["authorization"];
+      if (header !== `Bearer ${config.teamToken}`) {
         if (!known) ctx.assumption("A-auth-before-route", { note: "unauthenticated request to an unknown route answered 401" });
-        return fail(CATALOG.unauthorized, { auth: "denied" });
+        return fail(CATALOG.unauthorized, { auth: "denied", ...describeAuth(header, config.teamToken) });
       }
 
       switch (route) {
