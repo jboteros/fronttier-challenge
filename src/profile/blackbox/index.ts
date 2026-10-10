@@ -1,14 +1,10 @@
 import type { Context, HttpRequest, HttpResponse, Profile } from "../../core/types";
+import { CATALOG, type CatalogEntry } from "./catalog";
+import { COMMANDS } from "./commands";
+import { verifyCheck } from "./integrity";
+import { initialState, type State } from "./state";
 
-// Every body here was observed on the original (see lab/experimentos.jsonl). Keep texts verbatim.
-const CATALOG = {
-  unauthorized: { status: 401, error: "E001", mensaje: "no autorizado" },
-  unknownRoute: { status: 404, error: "E404", mensaje: "ruta desconocida" },
-  unknownCommand: { status: 400, error: "E301", mensaje: "comando desconocido " },
-} as const;
-
-type CatalogEntry = (typeof CATALOG)[keyof typeof CATALOG];
-type State = Record<string, never>;
+const CHECK = /^\d+$/;
 
 function ok(body: unknown, meta?: Record<string, unknown>): HttpResponse {
   return { status: 200, body, meta };
@@ -22,22 +18,35 @@ function isMessageBody(json: unknown): json is { m: string } {
   return typeof json === "object" && json !== null && typeof (json as { m?: unknown }).m === "string";
 }
 
+// Evaluation order (assumed, only partly observed): command, arity, check format, check value, then the command.
 function handleMessage(req: HttpRequest, ctx: Context<State>): HttpResponse {
   if (!isMessageBody(req.json)) {
     ctx.assumption("A-msg-body-shape", { note: "body without string field m; answered like an unknown command" });
     return fail(CATALOG.unknownCommand);
   }
-  const command = (req.json.m.split(";")[0] ?? "").toUpperCase();
+
+  const fields = req.json.m.split(";");
+  const command = (fields[0] ?? "").toUpperCase();
   if (command === "PING") return ok({ pong: true }, { rule: "ping" });
 
-  ctx.assumption("A-command-not-implemented", { command });
-  return fail(CATALOG.unknownCommand, { rule: "unknown-command" });
+  const spec = COMMANDS[command];
+  if (!spec) return fail(CATALOG.unknownCommand, { rule: "unknown-command" });
+  if (fields.length !== spec.arity) return fail(CATALOG.invalidArity, { rule: "arity" });
+
+  const check = fields[fields.length - 1] as string;
+  if (!CHECK.test(check)) return fail(CATALOG.malformedCheck, { rule: "check-format" });
+
+  const args = fields.slice(1, -1);
+  if (verifyCheck([command, ...args].join(";"), Number(check), ctx) === "invalid") {
+    return fail(CATALOG.invalidCheck, { rule: "check-value" });
+  }
+  return spec.run(args, ctx);
 }
 
 export function createBlackboxProfile(config: { teamToken: string }): Profile<State> {
   return {
     name: "blackbox",
-    initialState: () => ({}),
+    initialState,
     handle(req, ctx) {
       const route = `${req.method} ${req.path}`;
       const known = route === "GET /health" || route === "POST /__reset" || route === "POST /msg";
