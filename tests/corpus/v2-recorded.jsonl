@@ -227,3 +227,22 @@
 {"seq":"log-40","n":500,"method":"POST","path":"/msg","request":{"m":"DEPOSITO;AC-0001;9000000;82"},"status":200,"response":{"status":"recieved","operacionId":"OP-0001"}}
 {"seq":"log-40","n":501,"method":"POST","path":"/msg","request":{"m":"TRANSFER;AC-0001;AC-0002;50000;59"},"status":200,"response":{"status":"recieved","operacionId":"OP-0002"}}
 {"seq":"log-40","n":502,"method":"POST","path":"/msg","request":{"m":"TRANSFER;AC-0001;AC-0002;50000;59"},"status":200,"response":{"status":"recieved","operacionId":"OP-0003"}}
+{"seq":"log-42","n":505,"method":"POST","path":"/msg","request":{"m":"ALTA;A;62"},"status":201,"response":{"cuentaId":"AC-0001"}}
+{"seq":"log-42","n":506,"method":"POST","path":"/msg","request":{"m":"ALTA;B;59"},"status":201,"response":{"cuentaId":"AC-0002"}}
+{"seq":"log-42","n":507,"method":"POST","path":"/msg","request":{"m":"DEPOSITO;AC-0001;100000;6"},"status":200,"response":{"status":"recieved","operacionId":"OP-0001"}}
+{"seq":"log-42","n":508,"method":"POST","path":"/msg","request":{"m":"TRANSFER;AC-0001;AC-0002;40000;86"},"status":200,"response":{"status":"recieved","operacionId":"OP-0002"}}
+{"seq":"log-42","n":509,"method":"POST","path":"/msg","request":{"m":"ANULA;OP-0002;69"},"status":200,"response":{"ok":true,"anulada":"OP-0002"}}
+{"seq":"log-42","n":510,"method":"POST","path":"/msg","request":{"m":"ANULA;OP-0002;69"},"status":200,"response":{"ok":false,"motivo":"ya anulada"}}
+{"seq":"log-42","n":511,"method":"POST","path":"/msg","request":{"m":"CONSULTA;AC-0001;14"},"status":200,"response":{"cuenta_id":"AC-0001","saldo":"1000.00"}}
+{"seq":"log-42","n":512,"method":"POST","path":"/msg","request":{"m":"CONSULTA;AC-0002;11"},"status":200,"response":{"cuenta_id":"AC-0002","saldo":"0.00"}}
+{"seq":"log-42","n":513,"method":"POST","path":"/msg","request":{"m":"ANULA;OP-0001;72"},"status":200,"response":{"ok":true,"anulada":"OP-0001"}}
+{"seq":"log-42","n":514,"method":"POST","path":"/msg","request":{"m":"CONSULTA;AC-0001;14"},"status":200,"response":{"cuenta_id":"AC-0001","saldo":"0.00"}}
+{"seq":"log-43","n":516,"method":"POST","path":"/msg","request":{"m":"ALTA;A;62"},"status":201,"response":{"cuentaId":"AC-0001"}}
+{"seq":"log-43","n":517,"method":"POST","path":"/msg","request":{"m":"ALTA;B;59"},"status":201,"response":{"cuentaId":"AC-0002"}}
+{"seq":"log-43","n":518,"method":"POST","path":"/msg","request":{"m":"DEPOSITO;AC-0001;100.50;94"},"status":400,"response":{"error":"E303","mensaje":"monto inválido"}}
+{"seq":"log-43","n":519,"method":"POST","path":"/msg","request":{"m":"DEPOSITO;AC-0001;0;31"},"status":400,"response":{"error":"E303","mensaje":"monto inválido"}}
+{"seq":"log-43","n":520,"method":"POST","path":"/msg","request":{"m":"DEPOSITO;AC-0001;-5;16"},"status":400,"response":{"error":"E303","mensaje":"monto inválido"}}
+{"seq":"log-43","n":521,"method":"POST","path":"/msg","request":{"m":"DEPOSITO;AC-0001;1e3;20"},"status":400,"response":{"error":"E303","mensaje":"monto inválido"}}
+{"seq":"log-43","n":522,"method":"POST","path":"/msg","request":{"m":"TRANSFER;AC-0001;AC-0001;100;17"},"status":400,"response":{"error":"E304","mensaje":"origen y destino iguales"}}
+{"seq":"log-43","n":523,"method":"POST","path":"/msg","request":{"m":"TRANSFER;AC-0001;AC-0002;0;44"},"status":400,"response":{"error":"E303","mensaje":"monto inválido"}}
+{"seq":"log-43","n":524,"method":"POST","path":"/msg","request":{"m":"CONSULTA;AC-0001;14"},"status":200,"response":{"cuenta_id":"AC-0001","saldo":"0.00"}}

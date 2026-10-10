@@ -1,11 +1,11 @@
 import type { Context, HttpResponse } from "../../core/types";
-import { ASSUMED, CATALOG, type CatalogEntry } from "./catalog";
+import { CATALOG, type CatalogEntry } from "./catalog";
 import { accountId, operationId, type Operation, type State } from "./state";
 
 // v2, bisected on the original: a single transfer is accepted up to 50000 and rejected from 50001; two of 50000 in a
 // row are both accepted, so the limit is per operation (v1 accepted at least 100000).
 const TRANSFER_LIMIT = 50_000;
-const AMOUNT = /^\d+$/;
+const AMOUNT = /^\d+$/; // digits only: "100.50", "-5" and "1e3" are E303 on the original; 0 is E303 as well
 
 export interface CommandSpec {
   arity: number; // fields including command and check
@@ -37,9 +37,15 @@ function nextOperationId(ctx: Context<State>): string {
 }
 
 function parseAmount(raw: string | undefined, ctx: Context<State>): number | undefined {
-  if (raw !== undefined && AMOUNT.test(raw)) return Number(raw);
-  ctx.assumption("A-amount-invalid", { raw });
-  return undefined;
+  if (raw === undefined || !AMOUNT.test(raw)) return undefined;
+  const value = Number(raw);
+  if (value === 0) return undefined;
+  if (raw.length > 1 && raw.startsWith("0")) ctx.assumption("A-amount-leading-zeros", { raw });
+  if (!Number.isSafeInteger(value)) {
+    ctx.assumption("A-amount-huge", { raw, note: "beyond 2^53; treated as invalid amount" });
+    return undefined;
+  }
+  return value;
 }
 
 export const COMMANDS: Record<string, CommandSpec> = {
@@ -64,9 +70,10 @@ export const COMMANDS: Record<string, CommandSpec> = {
     arity: 4,
     run([id, rawAmount], ctx) {
       const account = ctx.state.accounts.get(id ?? "");
-      if (!account) return fail(CATALOG.unknownAccount, "deposito");
       const amount = parseAmount(rawAmount, ctx);
-      if (amount === undefined) return fail(ASSUMED.invalidAmount, "deposito");
+      if (!account && amount === undefined) ctx.assumption("A-validation-order", { command: "DEPOSITO", note: "unknown account and invalid amount together" });
+      if (!account) return fail(CATALOG.unknownAccount, "deposito");
+      if (amount === undefined) return fail(CATALOG.invalidAmount, "deposito");
       account.balance += amount;
       return recorded({ id: nextOperationId(ctx), kind: "DEPOSITO", to: id as string, amount, annulled: false }, ctx);
     },
@@ -76,14 +83,24 @@ export const COMMANDS: Record<string, CommandSpec> = {
     run([from, to, rawAmount], ctx) {
       const origin = ctx.state.accounts.get(from ?? "");
       const target = ctx.state.accounts.get(to ?? "");
-      if (!origin || !target) return fail(CATALOG.unknownAccount, "transfer");
       const amount = parseAmount(rawAmount, ctx);
-      if (amount === undefined) return fail(ASSUMED.invalidAmount, "transfer");
-      if (from === to) ctx.assumption("A-transfer-same-account");
-      if (amount > TRANSFER_LIMIT) {
-        return fail(CATALOG.limitExceeded, "transfer");
+
+      const conditions = {
+        unknownAccount: !origin || !target,
+        sameAccount: from === to,
+        invalidAmount: amount === undefined,
+        overLimit: amount !== undefined && amount > TRANSFER_LIMIT,
+        insufficient: amount !== undefined && origin !== undefined && origin.balance < amount,
+      };
+      if (Object.values(conditions).filter(Boolean).length > 1) {
+        ctx.assumption("A-validation-order", { command: "TRANSFER", ...conditions, note: "order assumed: account, same account, amount, limit, balance" });
       }
-      if (origin.balance < amount) return fail(CATALOG.insufficientBalance, "transfer");
+
+      if (!origin || !target) return fail(CATALOG.unknownAccount, "transfer");
+      if (conditions.sameAccount) return fail(CATALOG.sameAccount, "transfer");
+      if (amount === undefined) return fail(CATALOG.invalidAmount, "transfer");
+      if (conditions.overLimit) return fail(CATALOG.limitExceeded, "transfer");
+      if (conditions.insufficient) return fail(CATALOG.insufficientBalance, "transfer");
       origin.balance -= amount;
       target.balance += amount;
       return recorded({ id: nextOperationId(ctx), kind: "TRANSFER", from: from as string, to: to as string, amount, annulled: false }, ctx);
