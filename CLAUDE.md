@@ -40,7 +40,7 @@ Keep it honest, including the things that went wrong.
 - Default: TypeScript on Node, unless the brief dictates otherwise
 - Deploy target: TODO (needs a stable public URL by 13:30)
 - Model: TODO (via OpenRouter)
-- `dev`: TODO · `smoke`: TODO · `deploy`: TODO · `rollback`: TODO
+- Commands (`dev`, `smoke`, `deploy`, `rollback`) and env vars live in `README.md`; keep them there, not here.
 
 ## Repo map
 ```
