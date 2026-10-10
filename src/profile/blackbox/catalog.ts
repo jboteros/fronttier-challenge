@@ -15,11 +15,11 @@ export const CATALOG = {
   unknownAccount: { status: 404, error: "E401", mensaje: "cuenta inexistente" },
   limitExceeded: { status: 422, error: "E506", mensaje: "límite excedido" },
   insufficientBalance: { status: 422, error: "E507", mensaje: "saldo insuficiente" },
+  unknownOperation: { status: 404, error: "E402", mensaje: "operación inexistente" },
 } as const satisfies Record<string, CatalogEntry>;
 
 // Never observed: placeholders so the replacement answers with a valid shape.
 // Every use logs an assumption_hit and must be replaced by a real probe result.
 export const ASSUMED = {
   invalidAmount: { status: 422, error: "E501", mensaje: "monto inválido" },
-  unknownOperation: { status: 404, error: "E402", mensaje: "operación inexistente" },
 } as const satisfies Record<string, CatalogEntry>;

@@ -2,13 +2,19 @@ import type { Context, HttpResponse } from "../../core/types";
 import { ASSUMED, CATALOG, type CatalogEntry } from "./catalog";
 import { accountId, operationId, type Operation, type State } from "./state";
 
-// Assumed per-operation limit: the examples only bound it between 100000 (accepted) and 120000 (rejected).
-const TRANSFER_LIMIT = 100_000;
+// v2: 40000 is accepted and 100000 is rejected. Exact bound pending scripts/probe-limit.sh; 99999 is the least change.
+const TRANSFER_LIMIT = 99_999;
 const AMOUNT = /^\d+$/;
 
 export interface CommandSpec {
   arity: number; // fields including command and check
   run(args: string[], ctx: Context<State>): HttpResponse;
+}
+
+// v2: balances are kept in cents and shown as a string with two decimals ("400.00", "-399.95").
+function formatCents(cents: number): string {
+  const abs = Math.abs(cents);
+  return `${cents < 0 ? "-" : ""}${Math.floor(abs / 100)}.${String(abs % 100).padStart(2, "0")}`;
 }
 
 function ok(status: number, body: unknown, rule: string): HttpResponse {
@@ -50,7 +56,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
     run([id], ctx) {
       const account = ctx.state.accounts.get(id ?? "");
       if (!account) return fail(CATALOG.unknownAccount, "consulta");
-      return ok(200, { cuenta_id: id, saldo: account.balance }, "consulta");
+      return ok(200, { cuenta_id: id, saldo: formatCents(account.balance) }, "consulta");
     },
   },
   DEPOSITO: {
@@ -87,10 +93,7 @@ export const COMMANDS: Record<string, CommandSpec> = {
     arity: 3,
     run([id], ctx) {
       const operation = ctx.state.operations.get(id ?? "");
-      if (!operation) {
-        ctx.assumption("A-anula-unknown-operation", { id });
-        return fail(ASSUMED.unknownOperation, "anula");
-      }
+      if (!operation) return fail(CATALOG.unknownOperation, "anula");
       if (operation.annulled) return ok(200, { ok: false, motivo: "ya anulada" }, "anula");
 
       operation.annulled = true;
