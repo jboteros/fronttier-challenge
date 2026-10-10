@@ -2,8 +2,9 @@ import type { Context, HttpResponse } from "../../core/types";
 import { ASSUMED, CATALOG, type CatalogEntry } from "./catalog";
 import { accountId, operationId, type Operation, type State } from "./state";
 
-// v2: 40000 is accepted and 100000 is rejected. Exact bound pending scripts/probe-limit.sh; 99999 is the least change.
-const TRANSFER_LIMIT = 99_999;
+// v2, bisected on the original: a single transfer is accepted up to 50000 and rejected from 50001; two of 50000 in a
+// row are both accepted, so the limit is per operation (v1 accepted at least 100000).
+const TRANSFER_LIMIT = 50_000;
 const AMOUNT = /^\d+$/;
 
 export interface CommandSpec {
@@ -80,7 +81,6 @@ export const COMMANDS: Record<string, CommandSpec> = {
       if (amount === undefined) return fail(ASSUMED.invalidAmount, "transfer");
       if (from === to) ctx.assumption("A-transfer-same-account");
       if (amount > TRANSFER_LIMIT) {
-        ctx.assumption("A-transfer-limit", { amount, limit: TRANSFER_LIMIT, note: "per-operation limit assumed, cumulative not excluded" });
         return fail(CATALOG.limitExceeded, "transfer");
       }
       if (origin.balance < amount) return fail(CATALOG.insufficientBalance, "transfer");
