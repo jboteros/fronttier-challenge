@@ -246,3 +246,31 @@
 {"seq":"log-43","n":522,"method":"POST","path":"/msg","request":{"m":"TRANSFER;AC-0001;AC-0001;100;17"},"status":400,"response":{"error":"E304","mensaje":"origen y destino iguales"}}
 {"seq":"log-43","n":523,"method":"POST","path":"/msg","request":{"m":"TRANSFER;AC-0001;AC-0002;0;44"},"status":400,"response":{"error":"E303","mensaje":"monto inválido"}}
 {"seq":"log-43","n":524,"method":"POST","path":"/msg","request":{"m":"CONSULTA;AC-0001;14"},"status":200,"response":{"cuenta_id":"AC-0001","saldo":"0.00"}}
+{"seq":"log-44","n":526,"method":"POST","path":"/msg","request":{"m":"ALTA;A;62"},"status":201,"response":{"cuentaId":"AC-0001"}}
+{"seq":"log-44","n":527,"method":"POST","path":"/msg","request":{"m":"ALTA;B;59"},"status":201,"response":{"cuentaId":"AC-0002"}}
+{"seq":"log-44","n":528,"method":"POST","path":"/msg","request":{"m":"DEPOSITO;AC-0009;0;82"},"status":400,"response":{"error":"E303","mensaje":"monto inválido"}}
+{"seq":"log-44","n":529,"method":"POST","path":"/msg","request":{"m":"TRANSFER;AC-0009;AC-0009;100;33"},"status":400,"response":{"error":"E304","mensaje":"origen y destino iguales"}}
+{"seq":"log-44","n":530,"method":"POST","path":"/msg","request":{"m":"TRANSFER;AC-0001;AC-0001;0;74"},"status":400,"response":{"error":"E303","mensaje":"monto inválido"}}
+{"seq":"log-44","n":531,"method":"POST","path":"/msg","request":{"m":"TRANSFER;AC-0001;AC-0001;60000;11"},"status":400,"response":{"error":"E304","mensaje":"origen y destino iguales"}}
+{"seq":"log-44","n":532,"method":"POST","path":"/msg","request":{"m":"TRANSFER;AC-0001;AC-0002;60000;32"},"status":422,"response":{"error":"E506","mensaje":"límite excedido"}}
+{"seq":"log-44","n":533,"method":"POST","path":"/msg","request":{"m":"TRANSFER;AC-0001;AC-0009;0;28"},"status":400,"response":{"error":"E303","mensaje":"monto inválido"}}
+{"seq":"log-44","n":534,"method":"POST","path":"/msg","request":{"m":"TRANSFER;AC-0009;AC-0001;60000;85"},"status":404,"response":{"error":"E401","mensaje":"cuenta inexistente"}}
+{"seq":"log-44","n":535,"method":"POST","path":"/msg","request":{"m":"TRANSFER;AC-0001;AC-0002;10;13"},"status":422,"response":{"error":"E507","mensaje":"saldo insuficiente"}}
+{"seq":"log-45","n":537,"method":"POST","path":"/msg","request":{"m":"ALTA;A;62"},"status":201,"response":{"cuentaId":"AC-0001"}}
+{"seq":"log-45","n":538,"method":"POST","path":"/msg","request":{"m":"DEPOSITO;AC-0001;007;70"},"status":400,"response":{"error":"E303","mensaje":"monto inválido"}}
+{"seq":"log-45","n":539,"method":"POST","path":"/msg","request":{"m":"DEPOSITO;AC-0001;99999999999999999999;4"},"status":400,"response":{"error":"E303","mensaje":"monto inválido"}}
+{"seq":"log-45","n":540,"method":"POST","path":"/msg","request":{"m":"DEPOSITO;AC-0001; 5;16"},"status":400,"response":{"error":"E303","mensaje":"monto inválido"}}
+{"seq":"log-45","n":541,"method":"POST","path":"/msg","request":{"m":"DEPOSITO;AC-0001;1000000000000;90"},"status":400,"response":{"error":"E303","mensaje":"monto inválido"}}
+{"seq":"log-45","n":542,"method":"POST","path":"/msg","request":{"m":"CONSULTA;ac-0001;14"},"status":404,"response":{"error":"E401","mensaje":"cuenta inexistente"}}
+{"seq":"log-45","n":543,"method":"POST","path":"/msg","request":{"m":"ANULA;op-0001;72"},"status":404,"response":{"error":"E402","mensaje":"operación inexistente"}}
+{"seq":"log-45","n":544,"method":"POST","path":"/msg","request":{"m":"ALTA;;85"},"status":400,"response":{"error":"E104","mensaje":"segmento vacío"}}
+{"seq":"log-45","n":545,"method":"POST","path":"/msg","request":{"m":"ALTA;A;62"},"status":201,"response":{"cuentaId":"AC-0002"}}
+{"seq":"log-45","n":546,"method":"POST","path":"/msg","request":{"m":"CONSULTA;AC-0001;14"},"status":200,"response":{"cuenta_id":"AC-0001","saldo":"0.00"}}
+{"seq":"log-45","n":547,"method":"POST","path":"/msg","request":"hello","status":400,"response":{"error":"E100","mensaje":"json inválido"}}
+{"seq":"log-45","n":548,"method":"POST","path":"/msg","request":{},"status":400,"response":{"error":"E102","mensaje":"falta m"}}
+{"seq":"log-45","n":549,"method":"POST","path":"/msg","request":{"m":1},"status":400,"response":{"error":"E102","mensaje":"falta m"}}
+{"seq":"log-45","n":550,"method":"POST","path":"/msg","request":{"m":""},"status":400,"response":{"error":"E103","mensaje":"falta control"}}
+{"seq":"log-45","n":551,"method":"POST","path":"/msg","request":{"x":"PING;64"},"status":400,"response":{"error":"E102","mensaje":"falta m"}}
+{"seq":"log-45","n":552,"method":"POST","path":"/msg","request":[],"status":400,"response":{"error":"E102","mensaje":"falta m"}}
+{"seq":"log-45","n":553,"method":"POST","path":"/msg","request":{"m":"PING"},"status":400,"response":{"error":"E103","mensaje":"falta control"}}
+{"seq":"log-45","n":554,"method":"POST","path":"/msg","request":{"m":"CONSULTA;AC-0001"},"status":400,"response":{"error":"E201","mensaje":"control mal formado"}}

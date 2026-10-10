@@ -20,12 +20,11 @@ function readBody(req: http.IncomingMessage): Promise<{ raw: string; tooLarge: b
   });
 }
 
-function parseJson(raw: string): unknown {
-  if (raw === "") return undefined;
+function parseJson(raw: string): { value: unknown; valid: boolean } {
   try {
-    return JSON.parse(raw);
+    return { value: JSON.parse(raw), valid: true };
   } catch {
-    return undefined;
+    return { value: undefined, valid: false };
   }
 }
 
@@ -43,13 +42,15 @@ export function createApp<S>(profile: Profile<S>): http.Server {
     for (const [name, value] of Object.entries(incoming.headers)) {
       headers[name] = Array.isArray(value) ? value[0] : value;
     }
+    const parsed = parseJson(raw);
     const request: HttpRequest = {
       method: incoming.method ?? "GET",
       path: url.pathname,
       query: url.search,
       headers,
       rawBody: raw,
-      json: parseJson(raw),
+      json: parsed.value,
+      jsonValid: parsed.valid,
       tooLarge,
     };
 

@@ -8,6 +8,10 @@ export interface CatalogEntry {
 export const CATALOG = {
   unauthorized: { status: 401, error: "E001", mensaje: "no autorizado" },
   unknownRoute: { status: 404, error: "E404", mensaje: "ruta desconocida" },
+  invalidJson: { status: 400, error: "E100", mensaje: "json inválido" },
+  missingMessage: { status: 400, error: "E102", mensaje: "falta m" },
+  missingCheck: { status: 400, error: "E103", mensaje: "falta control" },
+  emptySegment: { status: 400, error: "E104", mensaje: "segmento vacío" },
   malformedCheck: { status: 400, error: "E201", mensaje: "control mal formado" },
   invalidCheck: { status: 400, error: "E202", mensaje: "control inválido" },
   unknownCommand: { status: 400, error: "E301", mensaje: "comando desconocido " },

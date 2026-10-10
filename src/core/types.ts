@@ -5,6 +5,7 @@ export interface HttpRequest {
   headers: Record<string, string | undefined>;
   rawBody: string;
   json: unknown;
+  jsonValid: boolean;
   tooLarge: boolean;
 }
 
