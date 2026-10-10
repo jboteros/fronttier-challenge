@@ -63,7 +63,14 @@ Corpus lines are `{"seq","n","request","status","response"}` with optional `"met
 
 ## Run the replacement
 
-TODO: install, dev server, port, environment.
+```bash
+npm install
+cp .env.example .env        # set TEAM_TOKEN; PORT defaults to 8080
+export $(grep -v '^#' .env | xargs)
+npm run dev                 # tsc + node dist/main.js
+```
+
+Zero runtime dependencies (Node `http` only); `typescript` and `@types/node` are dev-only. The service-specific part lives in `src/profile/blackbox/`; `src/core/` knows nothing about the protocol. Signals (request, audit, error, assumption hits) are JSON lines on stdout.
 
 ## Deploy and roll back
 
